@@ -47,6 +47,12 @@ export interface MasterCV {
   languages: string[]
 }
 
+export interface MasterCVResponse {
+  id: string
+  version: number
+  data: MasterCV
+}
+
 export interface MatchedRequirement {
   requirement: string
   evidence_ids: string[]
@@ -95,4 +101,3 @@ export interface ApiHealthResponse {
   environment: string
   model: string
 }
-

@@ -38,6 +38,11 @@ GEMINI_MODEL=gemini-2.5-flash
    .\backend\.venv\Scripts\python.exe -m pytest backend\tests
    ```
 
+5. **Master CV:**
+   - `GET /api/v1/master-cv` — obtiene la versión actual.
+   - `POST /api/v1/master-cv` — recibe un `.docx` o `.pdf` de hasta 5 MB, extrae su texto y lo estructura con Gemini.
+   - `PUT /api/v1/master-cv/{id}` — guarda cambios editados y crea una nueva versión.
+
 ---
 
 ### 3. Frontend (React 19 + Vite + Tailwind + TypeScript)
