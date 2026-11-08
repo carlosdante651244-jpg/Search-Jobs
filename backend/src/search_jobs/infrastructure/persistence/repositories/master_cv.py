@@ -28,6 +28,7 @@ class SqlMasterCVRepository:
                 "version": model.version,
                 "source_file_name": model.source_file_name,
                 "source_file_type": model.source_file_type,
+                "data": model.data,
                 "created_at": model.created_at,
                 "updated_at": model.updated_at,
             }

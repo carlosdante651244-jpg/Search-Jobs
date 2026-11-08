@@ -2,5 +2,8 @@ from google import genai
 from src.search_jobs.infrastructure.config import settings
 
 def get_gemini_client() -> genai.Client:
-    return genai.Client(api_key=settings.GEMINI_API_KEY)
+    return genai.Client(
+        api_key=settings.GEMINI_API_KEY,
+        http_options={"api_version": "v1beta"}
+    )
 

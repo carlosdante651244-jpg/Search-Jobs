@@ -5,7 +5,7 @@ export const CreateCVPage: React.FC = () => {
   const [jobDescription, setJobDescription] = useState('')
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Create Tailored CV</h2>
         <p className="text-slate-500 mt-1">

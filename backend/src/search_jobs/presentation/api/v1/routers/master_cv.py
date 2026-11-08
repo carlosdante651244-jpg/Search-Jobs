@@ -13,7 +13,7 @@ from src.search_jobs.application.use_cases.master_cv import (
     UploadMasterCV,
 )
 from src.search_jobs.domain.entities.master_cv import MasterCV
-from src.search_jobs.infrastructure.ai.gemini.cv_parser import GeminiCVParser
+from src.search_jobs.infrastructure.documents.hybrid_parser import HybridCVParser
 from src.search_jobs.infrastructure.documents.text_extractor import DocumentTextExtractor
 from src.search_jobs.infrastructure.persistence.database import get_session
 from src.search_jobs.infrastructure.persistence.repositories.master_cv import SqlMasterCVRepository
@@ -64,16 +64,11 @@ async def upload_master_cv(
         try:
             result = UploadMasterCV(
                 DocumentTextExtractor(),
-                GeminiCVParser(),
+                HybridCVParser(),
                 SqlMasterCVRepository(session),
             ).execute(Path(temporary_name), expected_type, file.filename or f"resume{extension}")
         except (ValueError, LookupError) as error:
             raise HTTPException(422, str(error)) from error
-        except APIError as error:
-            raise HTTPException(
-                status_code=503,
-                detail="Gemini is temporarily unavailable. Please try uploading again.",
-            ) from error
     finally:
         os.unlink(temporary_name)
     return response_for(result)
