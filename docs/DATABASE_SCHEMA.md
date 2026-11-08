@@ -90,7 +90,7 @@ Guarda el CV madre estructurado en JSON después de ser analizado por el parser.
 | `id` | `UUID` | `uuid.UUID` | No | `gen_random_uuid()` / PK | Identificador único del CV madre |
 | `data` | `JSONB` | `dict` (Pydantic `MasterCV`) | No | — | Árbol completo del CV (contacto, experiencia, educación, skills, etc.) |
 | `source_file_name`| `VARCHAR(255)` | `str` | Sí | `NULL` | Nombre original del archivo subido (ej: `cv_carlos.docx`) |
-| `source_file_type`| `VARCHAR(10)` | `str` | Sí | `NULL` | Tipo de archivo (`docx` o `pdf`) |
+| `source_file_type`| `VARCHAR(100)` | `str` | Sí | `NULL` | MIME type del archivo (`application/pdf` o el MIME de `.docx`) |
 | `version` | `INTEGER` | `int` | No | `1` | Versión incremental cada vez que el usuario edita su CV base |
 | `created_at` | `TIMESTAMPTZ` | `datetime` | No | `now()` | Fecha y hora de creación |
 | `updated_at` | `TIMESTAMPTZ` | `datetime` | No | `now()` | Fecha y hora de última modificación |
@@ -181,4 +181,3 @@ Control de los documentos generados guardados en almacenamiento local (`data/fil
 
 **Índices:**
 - `ix_generated_files_session_id` en `(session_id)`
-

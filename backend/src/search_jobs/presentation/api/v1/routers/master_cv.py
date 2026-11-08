@@ -1,8 +1,10 @@
+import os
 from pathlib import Path
-from tempfile import NamedTemporaryFile
+from tempfile import mkstemp
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from google.genai.errors import APIError
 from sqlmodel import Session
 
 from src.search_jobs.application.use_cases.master_cv import (
@@ -36,6 +38,11 @@ def get_master_cv(session: Session = Depends(get_session)):  # noqa: B008
     return response_for(result) if result else None
 
 
+@router.get("/history")
+def get_master_cv_history(session: Session = Depends(get_session)):  # noqa: B008
+    return SqlMasterCVRepository(session).list_versions()
+
+
 @router.post("", response_model=MasterCVResponse, status_code=status.HTTP_201_CREATED)
 async def upload_master_cv(
     file: UploadFile = File(...),  # noqa: B008
@@ -50,17 +57,25 @@ async def upload_master_cv(
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(413, "The file must be 5 MB or smaller.")
 
-    with NamedTemporaryFile(suffix=extension, delete=True) as temporary:
-        temporary.write(content)
-        temporary.flush()
+    file_descriptor, temporary_name = mkstemp(suffix=extension)
+    try:
+        with os.fdopen(file_descriptor, "wb") as temporary:
+            temporary.write(content)
         try:
             result = UploadMasterCV(
                 DocumentTextExtractor(),
                 GeminiCVParser(),
                 SqlMasterCVRepository(session),
-            ).execute(Path(temporary.name), expected_type, file.filename or f"resume{extension}")
+            ).execute(Path(temporary_name), expected_type, file.filename or f"resume{extension}")
         except (ValueError, LookupError) as error:
             raise HTTPException(422, str(error)) from error
+        except APIError as error:
+            raise HTTPException(
+                status_code=503,
+                detail="Gemini is temporarily unavailable. Please try uploading again.",
+            ) from error
+    finally:
+        os.unlink(temporary_name)
     return response_for(result)
 
 

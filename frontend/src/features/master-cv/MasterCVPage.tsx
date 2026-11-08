@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { FileUp, Info, Plus, Save, Trash2 } from 'lucide-react'
+import { AlertCircle, CheckCircle2, FileUp, Info, Plus, Save, Trash2 } from 'lucide-react'
 import { MasterCV, MasterCVResponse } from '@/shared/api/types'
 
 const emptyCV: MasterCV = {
@@ -14,6 +14,7 @@ const emptyCV: MasterCV = {
 }
 
 const inputClass = 'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100'
+type Toast = { type: 'success' | 'error' | 'info'; message: string }
 
 export const MasterCVPage: React.FC = () => {
   const fileInput = useRef<HTMLInputElement>(null)
@@ -22,6 +23,12 @@ export const MasterCVPage: React.FC = () => {
   const [version, setVersion] = useState<number | null>(null)
   const [status, setStatus] = useState('Loading your master CV...')
   const [busy, setBusy] = useState(false)
+  const [toast, setToast] = useState<Toast | null>(null)
+
+  const showToast = (type: Toast['type'], message: string) => {
+    setToast({ type, message })
+    window.setTimeout(() => setToast(null), 4500)
+  }
 
   useEffect(() => {
     fetch('/api/v1/master-cv')
@@ -37,7 +44,10 @@ export const MasterCVPage: React.FC = () => {
           setStatus(`Version ${result.version}`)
         } else setStatus('No master CV uploaded yet.')
       })
-      .catch((error: Error) => setStatus(error.message))
+      .catch((error: Error) => {
+        setStatus(error.message)
+        showToast('error', error.message)
+      })
   }, [])
 
   const updateContact = (field: keyof MasterCV['contact'], value: string) =>
@@ -47,26 +57,40 @@ export const MasterCVPage: React.FC = () => {
     const extension = file.name.toLowerCase().split('.').pop()
     if (!extension || !['docx', 'pdf'].includes(extension)) {
       setStatus('Only .docx and .pdf files are supported.')
+      showToast('error', 'Only .docx and .pdf files are supported.')
       return
     }
     if (file.size > 5 * 1024 * 1024) {
       setStatus('The file must be 5 MB or smaller.')
+      showToast('error', 'The file must be 5 MB or smaller.')
       return
     }
     setBusy(true)
     setStatus('Extracting and structuring your CV...')
+    showToast('info', 'Your CV is being processed. This may take a moment.')
     const formData = new FormData()
     formData.append('file', file)
     try {
       const response = await fetch('/api/v1/master-cv', { method: 'POST', body: formData })
-      const result = await response.json()
-      if (!response.ok) throw new Error(result.detail || 'Could not process the file.')
+      const body = await response.text()
+      let result: MasterCVResponse | { detail?: string }
+      try {
+        result = JSON.parse(body) as MasterCVResponse | { detail?: string }
+      } catch {
+        throw new Error(`Could not process the file (server returned ${response.status}).`)
+      }
+      if (!response.ok || !('data' in result)) {
+        throw new Error(('detail' in result && result.detail) || 'Could not process the file.')
+      }
       setCV(result.data)
       setCVId(result.id)
       setVersion(result.version)
       setStatus(`Version ${result.version} saved`)
+      showToast('success', `CV uploaded and saved as version ${result.version}.`)
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Could not process the file.')
+      const message = error instanceof Error ? error.message : 'Could not process the file.'
+      setStatus(message)
+      showToast('error', message)
     } finally {
       setBusy(false)
     }
@@ -81,13 +105,26 @@ export const MasterCVPage: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(cv),
       })
-      const result = await response.json()
-      if (!response.ok) throw new Error(result.detail || 'Could not save your changes.')
+      const body = await response.text()
+      let result: MasterCVResponse | { detail?: string }
+      try {
+        result = JSON.parse(body) as MasterCVResponse | { detail?: string }
+      } catch {
+        throw new Error(`Could not save your changes (server returned ${response.status}).`)
+      }
+      if (!response.ok || !('data' in result)) {
+        throw new Error(('detail' in result && result.detail) || 'Could not save your changes.')
+      }
       setCV(result.data)
       setVersion(result.version)
+      setCV(emptyCV)
+      setCVId(null)
       setStatus(`Version ${result.version} saved`)
+      showToast('success', `Changes saved as version ${result.version}.`)
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Could not save your changes.')
+      const message = error instanceof Error ? error.message : 'Could not save your changes.'
+      setStatus(message)
+      showToast('error', message)
     } finally {
       setBusy(false)
     }
@@ -130,6 +167,28 @@ export const MasterCVPage: React.FC = () => {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`fixed right-6 top-6 z-50 flex max-w-sm items-start gap-3 rounded-xl border p-4 text-sm shadow-lg ${
+            toast.type === 'success'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+              : toast.type === 'error'
+                ? 'border-red-200 bg-red-50 text-red-900'
+                : 'border-blue-200 bg-blue-50 text-blue-900'
+          }`}
+        >
+          {toast.type === 'success' ? (
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+          ) : toast.type === 'error' ? (
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+          ) : (
+            <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+          )}
+          <span>{toast.message}</span>
+        </div>
+      )}
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-slate-900">Master CV</h2>
         <p className="mt-1 text-slate-500">Your source of truth for every tailored resume.</p>

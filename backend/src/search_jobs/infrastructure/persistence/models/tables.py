@@ -1,8 +1,10 @@
-from uuid import UUID, uuid4
 from datetime import datetime, timezone
-from sqlmodel import SQLModel, Field
+from uuid import UUID, uuid4
+
 from sqlalchemy import Column
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlmodel import Field, SQLModel
+
 
 class MasterCVModel(SQLModel, table=True):
     __tablename__ = "master_cvs"
@@ -10,7 +12,7 @@ class MasterCVModel(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     data: dict = Field(default_factory=dict, sa_column=Column(JSONB, nullable=False))
     source_file_name: str | None = Field(default=None, max_length=255)
-    source_file_type: str | None = Field(default=None, max_length=10)
+    source_file_type: str | None = Field(default=None, max_length=100)
     version: int = Field(default=1, index=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -19,7 +21,11 @@ class CVSessionModel(SQLModel, table=True):
     __tablename__ = "cv_sessions"
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    master_cv_id: UUID | None = Field(default=None, foreign_key="master_cvs.id", ondelete="SET NULL")
+    master_cv_id: UUID | None = Field(
+        default=None,
+        foreign_key="master_cvs.id",
+        ondelete="SET NULL",
+    )
     master_cv_version: int = Field(default=1)
     company: str | None = Field(default=None, max_length=150)
     role_title: str | None = Field(default=None, max_length=150)
@@ -63,4 +69,3 @@ class GeneratedFileModel(SQLModel, table=True):
     storage_path: str = Field(max_length=500)
     file_size_bytes: int | None = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-

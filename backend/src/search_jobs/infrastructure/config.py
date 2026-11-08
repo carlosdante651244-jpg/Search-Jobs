@@ -1,5 +1,6 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -10,7 +11,7 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = Field(..., description="Neon PostgreSQL connection string")
     GEMINI_API_KEY: str = Field(..., description="Google Gemini API key")
-    GEMINI_MODEL: str = Field("gemini-1.5-flash", description="Gemini model name")
+    GEMINI_MODEL: str = Field("gemini-3.5-flash", description="Gemini model name")
     
     PORT: int = 8000
     ENVIRONMENT: str = "development"
@@ -21,4 +22,3 @@ class Settings(BaseSettings):
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
 
 settings = Settings()
-

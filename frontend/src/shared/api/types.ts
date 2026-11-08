@@ -53,6 +53,15 @@ export interface MasterCVResponse {
   data: MasterCV
 }
 
+export interface MasterCVHistoryItem {
+  id: string
+  version: number
+  source_file_name?: string | null
+  source_file_type?: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface MatchedRequirement {
   requirement: string
   evidence_ids: string[]
