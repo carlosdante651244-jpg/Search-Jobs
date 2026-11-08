@@ -10,6 +10,7 @@ class MasterCVModel(SQLModel, table=True):
     __tablename__ = "master_cvs"
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
+    name: str | None = Field(default=None, max_length=150)
     data: dict = Field(default_factory=dict, sa_column=Column(JSONB, nullable=False))
     source_file_name: str | None = Field(default=None, max_length=255)
     source_file_type: str | None = Field(default=None, max_length=100)

@@ -3,7 +3,7 @@ from pathlib import Path
 from tempfile import mkstemp
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from google.genai.errors import APIError
 from sqlmodel import Session
 
@@ -27,9 +27,9 @@ ALLOWED_TYPES = {
 }
 
 
-def response_for(result: tuple[UUID, MasterCV, int]) -> MasterCVResponse:
-    cv_id, data, version = result
-    return MasterCVResponse(id=cv_id, version=version, data=data)
+def response_for(result: tuple[UUID, MasterCV, int, str | None]) -> MasterCVResponse:
+    cv_id, data, version, name = result
+    return MasterCVResponse(id=cv_id, name=name, version=version, data=data)
 
 
 @router.get("", response_model=MasterCVResponse | None)
@@ -43,9 +43,16 @@ def get_master_cv_history(session: Session = Depends(get_session)):  # noqa: B00
     return SqlMasterCVRepository(session).list_versions()
 
 
+@router.get("/{cv_id}", response_model=MasterCVResponse | None)
+def get_master_cv_by_id(cv_id: UUID, session: Session = Depends(get_session)):  # noqa: B008
+    result = SqlMasterCVRepository(session).get_by_id(cv_id)
+    return response_for(result) if result else None
+
+
 @router.post("", response_model=MasterCVResponse, status_code=status.HTTP_201_CREATED)
 async def upload_master_cv(
     file: UploadFile = File(...),  # noqa: B008
+    name: str | None = Form(None),  # noqa: B008
     session: Session = Depends(get_session),  # noqa: B008
 ):
     extension = Path(file.filename or "").suffix.lower()
@@ -66,7 +73,12 @@ async def upload_master_cv(
                 DocumentTextExtractor(),
                 HybridCVParser(),
                 SqlMasterCVRepository(session),
-            ).execute(Path(temporary_name), expected_type, file.filename or f"resume{extension}")
+            ).execute(
+                Path(temporary_name),
+                expected_type,
+                file.filename or f"resume{extension}",
+                name.strip() if name else None,
+            )
         except (ValueError, LookupError) as error:
             raise HTTPException(422, str(error)) from error
     finally:
@@ -78,10 +90,11 @@ async def upload_master_cv(
 def update_master_cv(
     cv_id: UUID,
     cv: MasterCV,
+    name: str | None = None,
     session: Session = Depends(get_session),  # noqa: B008
 ):
     try:
-        result = UpdateMasterCV(SqlMasterCVRepository(session)).execute(cv_id, cv)
+        result = UpdateMasterCV(SqlMasterCVRepository(session)).execute(cv_id, cv, name)
     except LookupError as error:
         raise HTTPException(404, str(error)) from error
     return response_for(result)
