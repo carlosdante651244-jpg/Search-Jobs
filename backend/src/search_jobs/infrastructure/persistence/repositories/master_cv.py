@@ -10,13 +10,19 @@ class SqlMasterCVRepository:
     def __init__(self, session: Session) -> None:
         self.session = session
 
-    def get_current(self) -> tuple[UUID, MasterCV, int] | None:
+    def get_current(self) -> tuple[UUID, MasterCV, int, str | None] | None:
         model = self.session.exec(
             select(MasterCVModel).order_by(MasterCVModel.updated_at.desc())
         ).first()
         if model is None:
             return None
-        return model.id, MasterCV.model_validate(model.data), model.version
+        return model.id, MasterCV.model_validate(model.data), model.version, model.name
+
+    def get_by_id(self, cv_id: UUID) -> tuple[UUID, MasterCV, int, str | None] | None:
+        model = self.session.get(MasterCVModel, cv_id)
+        if model is None:
+            return None
+        return model.id, MasterCV.model_validate(model.data), model.version, model.name
 
     def list_versions(self) -> list[dict]:
         models = self.session.exec(
@@ -25,6 +31,7 @@ class SqlMasterCVRepository:
         return [
             {
                 "id": model.id,
+                "name": model.name or model.source_file_name or f"Resume v{model.version}",
                 "version": model.version,
                 "source_file_name": model.source_file_name,
                 "source_file_type": model.source_file_type,
@@ -35,11 +42,12 @@ class SqlMasterCVRepository:
             for model in models
         ]
 
-    def create(self, cv: MasterCV, source_file_name: str, source_file_type: str):
+    def create(self, cv: MasterCV, source_file_name: str, source_file_type: str, name: str | None = None):
         latest = self.session.exec(
             select(MasterCVModel).order_by(MasterCVModel.version.desc())
         ).first()
         model = MasterCVModel(
+            name=name,
             data=cv.model_dump(mode="json"),
             source_file_name=source_file_name,
             source_file_type=source_file_type,
@@ -48,13 +56,14 @@ class SqlMasterCVRepository:
         self.session.add(model)
         self.session.commit()
         self.session.refresh(model)
-        return model.id, cv, model.version
+        return model.id, cv, model.version, model.name
 
-    def update(self, cv_id: UUID, cv: MasterCV) -> tuple[UUID, MasterCV, int]:
+    def update(self, cv_id: UUID, cv: MasterCV, name: str | None = None) -> tuple[UUID, MasterCV, int, str | None]:
         current = self.session.get(MasterCVModel, cv_id)
         if current is None:
             raise LookupError("Master CV not found.")
         model = MasterCVModel(
+            name=name or current.name,
             data=cv.model_dump(mode="json"),
             source_file_name=current.source_file_name,
             source_file_type=current.source_file_type,
@@ -63,4 +72,4 @@ class SqlMasterCVRepository:
         self.session.add(model)
         self.session.commit()
         self.session.refresh(model)
-        return model.id, cv, model.version
+        return model.id, cv, model.version, model.name

@@ -33,6 +33,7 @@ export const MasterCVPage: React.FC = () => {
   const fileInput = useRef<HTMLInputElement>(null)
   const [cv, setCV] = useState<MasterCV>(emptyCV)
   const [cvId, setCVId] = useState<string | null>(null)
+  const [cvName, setCvName] = useState('')
   const [version, setVersion] = useState<number | null>(null)
   const [status, setStatus] = useState('')
   const [busy, setBusy] = useState(false)
@@ -54,8 +55,9 @@ export const MasterCVPage: React.FC = () => {
         if (result) {
           setCV(result.data)
           setCVId(result.id)
+          setCvName(result.name || '')
           setVersion(result.version)
-          setStatus(`Active Base Resume saved (Version ${result.version})`)
+          setStatus(`Active Base Resume saved: ${result.name || `Version ${result.version}`}`)
         } else {
           setStatus('No base CV uploaded yet.')
         }
@@ -85,6 +87,9 @@ export const MasterCVPage: React.FC = () => {
 
     const formData = new FormData()
     formData.append('file', file)
+    if (cvName.trim()) {
+      formData.append('name', cvName.trim())
+    }
 
     try {
       const response = await fetch('/api/v1/master-cv', { method: 'POST', body: formData })
@@ -101,9 +106,10 @@ export const MasterCVPage: React.FC = () => {
 
       setCV(result.data)
       setCVId(result.id)
+      setCvName(result.name || cvName.trim() || file.name.replace(/\.[^/.]+$/, ''))
       setVersion(result.version)
       setIsEditing(true)
-      setStatus(`Imported Version ${result.version}. Review the fields below and click Save.`)
+      setStatus(`Imported "${result.name || `Version ${result.version}`}". Review the fields below and click Save.`)
       showToast('success', `CV imported successfully (Version ${result.version}). Review details below.`)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Upload failed.'
@@ -118,7 +124,10 @@ export const MasterCVPage: React.FC = () => {
     if (!cvId) return
     setBusy(true)
     try {
-      const response = await fetch(`/api/v1/master-cv/${cvId}`, {
+      const url = cvName.trim()
+        ? `/api/v1/master-cv/${cvId}?name=${encodeURIComponent(cvName.trim())}`
+        : `/api/v1/master-cv/${cvId}`
+      const response = await fetch(url, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(cv),
@@ -136,9 +145,10 @@ export const MasterCVPage: React.FC = () => {
 
       setCV(result.data)
       setVersion(result.version)
+      setCvName(result.name || '')
       setIsEditing(false)
-      setStatus(`Base resume successfully saved (Version ${result.version}). Ready to tailor jobs!`)
-      showToast('success', `Master CV saved as Version ${result.version}.`)
+      setStatus(`Base resume "${result.name || `Version ${result.version}`}" successfully saved! Ready to tailor jobs.`)
+      showToast('success', `Master CV "${result.name || `Version ${result.version}`}" saved.`)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Save failed.'
       showToast('error', message)
@@ -258,30 +268,48 @@ export const MasterCVPage: React.FC = () => {
         </p>
       </div>
 
-      {/* Upload Box */}
-      <input
-        ref={fileInput}
-        type="file"
-        accept=".docx,.pdf"
-        className="hidden"
-        onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}
-      />
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => fileInput.current?.click()}
-        className="group relative w-full overflow-hidden rounded-3xl border-2 border-dashed border-slate-300 bg-white p-12 text-center transition hover:border-indigo-500 hover:bg-indigo-50/30 disabled:opacity-60"
-      >
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 transition group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white">
-          <FileUp className="h-7 w-7" />
+      {/* Upload & Naming Box */}
+      <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-xs space-y-6">
+        <div>
+          <label className="block text-base font-bold text-slate-900 mb-2">
+            Resume Label / Title (Optional)
+          </label>
+          <input
+            type="text"
+            className={inputClass}
+            placeholder="e.g. Fullstack Engineer CV, Tech Lead 2026, Data Science Base..."
+            value={cvName}
+            onChange={(e) => setCvName(e.target.value)}
+          />
+          <p className="mt-1.5 text-xs text-slate-500">
+            Give this resume a descriptive name so you can easily identify and select it when tailoring for job posts.
+          </p>
         </div>
-        <p className="text-lg font-bold text-slate-900">
-          {busy ? 'Reading & Structuring Document...' : 'Upload Base Resume (.docx or .pdf)'}
-        </p>
-        <p className="mt-1.5 text-sm text-slate-500">
-          Drag & drop your existing resume or click to browse (Max 5 MB)
-        </p>
-      </button>
+
+        <input
+          ref={fileInput}
+          type="file"
+          accept=".docx,.pdf"
+          className="hidden"
+          onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}
+        />
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => fileInput.current?.click()}
+          className="group relative w-full overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/50 p-10 text-center transition hover:border-indigo-500 hover:bg-indigo-50/40 disabled:opacity-60"
+        >
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 transition group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white">
+            <FileUp className="h-6 w-6" />
+          </div>
+          <p className="text-base font-bold text-slate-900">
+            {busy ? 'Reading & Structuring Document...' : 'Upload Base Resume (.docx or .pdf)'}
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            Drag & drop your file or click to browse (Max 5 MB)
+          </p>
+        </button>
+      </div>
 
       {/* Status banner */}
       <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-5 py-3.5 text-sm text-slate-700 shadow-xs">
@@ -299,6 +327,17 @@ export const MasterCVPage: React.FC = () => {
       {/* Structured CV Editor (Only visible right after uploading a file until user clicks Save) */}
       {isEditing && (
         <div className="space-y-8 animate-in fade-in duration-300">
+          {/* Resume Name in Editor */}
+          <section className="rounded-3xl border border-slate-200 bg-white p-7 shadow-xs space-y-3">
+            <h3 className="text-xl font-bold text-slate-900">Resume Name / Identifier</h3>
+            <input
+              type="text"
+              className={inputClass}
+              placeholder="e.g. Senior Software Engineer CV"
+              value={cvName}
+              onChange={(e) => setCvName(e.target.value)}
+            />
+          </section>
           {/* Contact Details */}
           <section className="rounded-3xl border border-slate-200 bg-white p-7 shadow-xs space-y-5">
             <div className="flex items-center gap-2.5 text-slate-900 border-b border-slate-100 pb-4">

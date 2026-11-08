@@ -332,11 +332,16 @@ sequenceDiagram
 > [!NOTE]
 > Los nombres exactos de modelos cambian con frecuencia; se eligen en `.env` según lo disponible en AI Studio. Las salidas usan `response_mime_type="application/json"` + `response_schema` (Pydantic) para garantizar JSON válido.
 
-**Guardrails (anti-alucinación):**
+**Guardrails (anti-alucinación) y Cálculo Determinista:**
 1. Prompt del Advisor: *"Never invent employers, titles, dates, degrees, certifications, metrics or technologies not present in the master CV."*
 2. Cada `ADD`/`REWRITE` debe traer `source_evidence_ids` → **validación en el dominio** (`EvidenceValidator`): si los IDs no existen, la sugerencia se descarta.
 3. Validación con Pydantic + 1 reintento automático si el JSON es inválido.
 4. Gaps sin evidencia se muestran como **"Gaps you can't cover"** (información para el usuario, no se inventan).
+5. **Cálculo Determinista del ATS Match Score (`MatchScorer`):** No se delega al LLM la invención del porcentaje. Se calcula con una ponderación matemática fija que incluye el idioma requerido:
+   - **40% Skills Requeridas:** Proporción de habilidades obligatorias demostradas en el CV con IDs válidos.
+   - **30% Palabras Clave ATS:** Coincidencia de terminología crítica y herramientas.
+   - **15% Idiomas Requeridos (Language Match):** Si el puesto exige un idioma (ej. Inglés B2/C1, Alemán, etc.) y el candidato lo tiene registrado en su Master CV.
+   - **15% Seniority Match:** Alineación entre los años de experiencia / nivel exigido vs historial del CV.
 
 **Orquestación:** cada paso del pipeline es un **use case** independiente (`AnalyzeJob`, `GenerateSuggestions`, `GenerateTailoredCV`); no hace falta LangGraph en el MVP. La pausa humana es simplemente el estado `AWAITING_APPROVAL` en DB.
 

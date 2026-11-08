@@ -13,6 +13,7 @@ class JobAnalysis(BaseModel):
     job_title: str = ""
     company: str = ""
     seniority: str = ""
+    required_languages: list[str] = Field(default_factory=list)
     required_skills: list[str] = Field(default_factory=list)
     preferred_skills: list[str] = Field(default_factory=list)
     keywords: list[str] = Field(default_factory=list)

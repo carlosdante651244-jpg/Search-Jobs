@@ -49,12 +49,14 @@ export interface MasterCV {
 
 export interface MasterCVResponse {
   id: string
+  name?: string | null
   version: number
   data: MasterCV
 }
 
 export interface MasterCVHistoryItem {
   id: string
+  name?: string | null
   version: number
   source_file_name?: string | null
   source_file_type?: string | null
@@ -78,6 +80,7 @@ export interface JobAnalysis {
   job_title: string
   company: string
   seniority: string
+  required_languages: string[]
   required_skills: string[]
   preferred_skills: string[]
   keywords: string[]
@@ -110,4 +113,22 @@ export interface ApiHealthResponse {
   database: string
   environment: string
   model: string
+}
+
+export interface CVSession {
+  id: string
+  master_cv_id?: string | null
+  master_cv_version: number
+  company?: string | null
+  role_title?: string | null
+  job_description: string
+  job_url?: string | null
+  status: string
+  failed_step?: string | null
+  error_message?: string | null
+  analysis?: JobAnalysis | null
+  score_before?: number | null
+  score_after?: number | null
+  created_at: string
+  updated_at: string
 }
