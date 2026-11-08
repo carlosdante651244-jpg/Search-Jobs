@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 
 export const DashboardPage: React.FC = () => {
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="w-full space-y-8">
       <div>
         <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Dashboard</h2>
         <p className="text-slate-500 mt-1">

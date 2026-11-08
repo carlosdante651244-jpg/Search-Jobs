@@ -4,11 +4,16 @@ from sqlalchemy import text
 from src.search_jobs.infrastructure.config import settings
 
 # Pooler configuration for Neon Serverless
+# pool_pre_ping: recicla conexiones caídas o reanudadas tras idle
+# connect_args: timeouts para evitar bloqueos por micro-cortes de DNS o red
 engine = create_engine(
     settings.DATABASE_URL,
     echo=(settings.ENVIRONMENT == "development"),
     pool_pre_ping=True,
-    pool_recycle=300
+    pool_recycle=300,
+    connect_args={
+        "connect_timeout": 10,
+    }
 )
 
 def get_session() -> Generator[Session, None, None]:

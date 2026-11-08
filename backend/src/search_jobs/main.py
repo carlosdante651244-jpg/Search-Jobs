@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.search_jobs.infrastructure.config import settings
 from src.search_jobs.presentation.api.v1.routers.health import router as health_router
+from src.search_jobs.presentation.api.v1.routers.master_cv import router as master_cv_router
 
 app = FastAPI(
     title="Search-Jobs API",
@@ -20,6 +21,7 @@ app.add_middleware(
 
 # Routers
 app.include_router(health_router, prefix="/api/v1")
+app.include_router(master_cv_router, prefix="/api/v1")
 
 @app.get("/")
 def root():
